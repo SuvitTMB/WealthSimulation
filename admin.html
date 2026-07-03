@@ -1,0 +1,1358 @@
+<!DOCTYPE html>
+<html lang="th">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WealthSim Pro - Admin Dashboard</title>
+    <!-- Tailwind CSS for premium responsive styling -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'Prompt', 'sans-serif'],
+                    },
+                    fontSize: {
+                        xs: '13px',
+                    },
+                    colors: {
+                        brand: {
+                            50: '#f0f9ff',
+                            100: '#e0f2fe',
+                            500: '#0ea5e9',
+                            600: '#0284c7',
+                            700: '#0369a1',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <!-- Google Fonts: Prompt & Inter -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Prompt:wght@300;400;500;600;700&display=swap"
+        rel="stylesheet">
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <!-- Firebase SDKs -->
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
+    <!-- Firebase Config -->
+    <script src="js/firebase-config.js"></script>
+
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+    <link rel="stylesheet" href="css/admin.css">
+</head>
+
+<body class="min-h-screen text-slate-800 antialiased flex flex-col">
+
+    <header class="bg-white border-b border-slate-200/80 sticky top-0 z-50 shadow-sm">
+        <div class="max-w-[1200px] mx-auto px-6 h-16 flex items-start justify-between pt-3">
+            <div class="flex items-start gap-3">
+                <div
+                    class="w-10 h-10 rounded-xl bg-indigo-600 flex items-center justify-center text-white shadow-md shadow-indigo-600/20 shrink-0">
+                    <i class="fa-solid fa-sliders text-lg"></i>
+                </div>
+                <div>
+                    <h1 class="font-bold text-lg leading-none text-slate-900">WealthSim <span
+                            class="text-indigo-600 font-semibold">Pro</span></h1>
+                    <span class="text-xs text-slate-500">RM Portfolio Simulation</span>
+                </div>
+            </div>
+            <div class="flex items-start gap-4 pt-1">
+                <span
+                    class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-indigo-50 text-indigo-600 border border-indigo-100">
+                    <span class="w-2 h-2 rounded-full bg-indigo-500 animate-pulse"></span> Control Room Connected
+                </span>
+                <span class="text-xs text-slate-400 pt-0.5">|</span>
+                <div class="flex items-center gap-2 text-sm font-medium text-slate-600 pt-0.5">
+                    <i class="fa-solid fa-user-shield text-indigo-600"></i>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <main class="max-w-[1200px] w-full mx-auto p-6 grid grid-cols-1 gap-4 relative items-start">
+
+        <!-- Toast Notification system container (Moved to Top Center) -->
+        <div id="toastContainer"
+            class="fixed top-5 left-1/2 -translate-x-1/2 w-full max-w-sm z-[99999] space-y-2 pointer-events-none flex flex-col items-center">
+        </div>
+
+        <!-- Tabs Navigation Menu -->
+        <div class="flex border-b border-slate-200/80 mb-2 gap-6 text-xs items-start">
+            <button onclick="switchTab('rounds')" id="tabBtn-rounds"
+                class="py-3 px-1 border-b-2 border-indigo-600 text-indigo-600 font-bold flex items-center gap-2 transition-all">
+                <i class="fa-solid fa-calendar-days"></i> การจัดรอบ
+            </button>
+            <button onclick="switchTab('ports')" id="tabBtn-ports"
+                class="py-3 px-1 border-b-2 border-transparent text-slate-500 hover:text-slate-800 font-semibold flex items-center gap-2 transition-all">
+                <i class="fa-solid fa-briefcase"></i> จัดการ Port
+            </button>
+            <button onclick="switchTab('control')" id="tabBtn-control"
+                class="py-3 px-1 border-b-2 border-transparent text-slate-500 hover:text-slate-800 font-semibold flex items-center gap-2 transition-all">
+                <i class="fa-solid fa-sliders"></i> แผงควบคุม
+            </button>
+            <button onclick="switchTab('competitors')" id="tabBtn-competitors"
+                class="py-3 px-1 border-b-2 border-transparent text-slate-500 hover:text-slate-800 font-semibold flex items-center gap-2 transition-all">
+                <i class="fa-solid fa-users"></i> ผู้เข้าแข่งขัน
+            </button>
+            <button onclick="switchTab('leaderboard')" id="tabBtn-leaderboard"
+                class="py-3 px-1 border-b-2 border-transparent text-slate-500 hover:text-slate-800 font-semibold flex items-center gap-2 transition-all">
+                <i class="fa-solid fa-trophy"></i> Leaderboard
+            </button>
+        </div>
+
+        <!-- ================= TAB: ROUND MANAGEMENT ================= -->
+        <section id="tab-content-rounds" class="space-y-6">
+            <div class="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm">
+                <div class="flex items-start justify-between mb-4 border-b border-slate-100 pb-3">
+                    <div class="flex items-start gap-3">
+                        <div
+                            class="w-8 h-8 rounded-lg bg-indigo-50 flex items-center justify-center text-indigo-600 shrink-0">
+                            <i class="fa-solid fa-calendar-days"></i>
+                        </div>
+                        <div>
+                            <h2 class="font-bold text-slate-900 text-base">ระบบจัดการรอบกิจกรรม</h2>
+                            <p class="text-xs text-slate-500">สร้าง แก้ไข
+                                หรือลบข้อมูลรอบการลงทะเบียนจำลองสำหรับผู้เข้าแข่งขัน</p>
+                        </div>
+                    </div>
+                    <button onclick="openAddRoundLightbox()"
+                        class="py-2 px-4 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl text-xs transition shadow-md shadow-indigo-600/10 flex items-center gap-1.5">
+                        <i class="fa-solid fa-plus"></i> เพิ่มรอบกิจกรรม
+                    </button>
+                </div>
+
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left border-collapse text-xs">
+                        <thead>
+                            <tr class="border-b border-slate-200 text-slate-700 bg-[#e3edf4] tracking-normal">
+                                <th class="py-3 px-4 font-normal">ชื่อรอบ</th>
+                                <th class="py-3 px-4 font-normal">รูปลูกค้า</th>
+                                <th class="py-3 px-4 font-normal">ชื่อ-นามสกุล</th>
+                                <th class="py-3 px-4 font-normal">รายได้</th>
+                                <th class="py-3 px-4 font-normal">เงินขั้นต้น</th>
+                                <th class="py-3 px-4 font-normal">เงินพิเศษ</th>
+                                <th class="py-3 px-4 font-normal text-center">สถานะ</th>
+                                <th class="py-3 px-4 font-normal text-center">เมนูจัดการ</th>
+                            </tr>
+                        </thead>
+                        <tbody id="roundsTableBody"
+                            class="divide-y divide-slate-100 text-slate-700 font-semibold align-top">
+                            <tr>
+                                <td colspan="7" class="py-6 text-center text-slate-400">-- ไม่พบข้อมูลรอบกิจกรรม --</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- Pagination Control Container -->
+                <div
+                    class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mt-4 pt-3 border-t border-slate-100 text-xs text-slate-500">
+                    <div id="roundsPaginationInfo">
+                        จำนวนข้อมูลทั้งหมด <span id="roundsTotalCount" class="font-bold text-slate-700">0</span> รายการ
+                    </div>
+                    <div class="flex items-center gap-3">
+                        <div class="flex items-center gap-1.5">
+                            <span>แสดงผลต่อหน้า:</span>
+                            <select id="roundsPageSizeSelect" onchange="changeRoundsPageSize(this.value)"
+                                class="bg-slate-50 border rounded-lg py-1 px-2 font-semibold outline-none focus:border-indigo-500 text-slate-700">
+                                <option value="5">5</option>
+                                <option value="10" selected>10</option>
+                                <option value="20">20</option>
+                                <option value="50">50</option>
+                            </select>
+                        </div>
+                        <div class="flex items-center gap-1" id="roundsPaginationButtons">
+                            <!-- Pagination buttons dynamically rendered -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- ================= TAB A: ADMIN CONTROL ROOM ================= -->
+        <section id="tab-content-control" class="hidden space-y-6">
+
+            <!-- Admin Title Panel -->
+            <div class="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm">
+                <div
+                    class="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-100 pb-3">
+                    <div class="flex items-center gap-3">
+                        <div class="w-8 h-8 rounded-lg bg-indigo-50 flex items-center justify-center text-indigo-600">
+                            <i class="fa-solid fa-sliders"></i>
+                        </div>
+                        <div>
+                            <h2 class="font-bold text-slate-900 text-base">แผงควบคุมหลักสำหรับ Admin</h2>
+                            <p class="text-xs text-slate-500">กำหนดเงินลงทุนเริ่มต้น ปรับตัวแปร
+                                และส่งสถานการณ์ภัยพิบัติจำลองไปยังผู้เล่นทุกคน</p>
+                        </div>
+                    </div>
+                    <!-- Dropdown Filter -->
+                    <div class="flex items-center gap-2 self-start md:self-auto">
+                        <span class="text-xs font-bold text-slate-500">รอบกิจกรรม:</span>
+                        <select id="controlRoundSelect" onchange="syncSelectedRound(this.value)"
+                            class="bg-slate-50 border border-slate-200 rounded-xl py-1.5 px-3 font-bold text-xs outline-none focus:border-indigo-500 text-slate-700 min-w-[180px] shadow-sm transition-all">
+                            <option value="">-- โหลดข้อมูลรอบ --</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Two Column Control Room Layout -->
+            <div class="flex flex-col lg:flex-row gap-6 w-full">
+                <!-- Left Column (50%) -->
+                <div class="flex flex-col gap-6 w-full lg:w-1/2">
+                    <!-- Box 1: กำหนดเงินเริ่มต้นและเงินพิเศษ -->
+                    <div class="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm space-y-4">
+                        <!-- Section 1: Customer Budget Setting -->
+                        <div class="space-y-3 pt-2">
+                            <label class="block text-sm font-semibold text-slate-700">1. กำหนดเงินลงทุนเริ่มต้นของลูกค้า
+                                (บาท) เพื่ออัปเดตผู้ใช้งานทุกคน</label>
+                            <div class="relative rounded-xl shadow-sm">
+                                <div class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-4">
+                                    <span class="text-slate-400 font-medium text-sm">฿</span>
+                                </div>
+                                <input type="number" id="adminTotalBudget" value="10000000" min="100000" step="500000"
+                                    class="block w-full rounded-xl border border-slate-200 py-3 pl-9 pr-12 text-slate-900 font-bold placeholder:text-slate-400 focus:border-indigo-500 focus:ring-indigo-500 sm:text-base outline-none transition"
+                                    oninput="updateAdminBudget()">
+                                <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-4">
+                                    <span class="text-slate-400 text-xs font-semibold">THB</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Section 1.2: Special Money Adjustments -->
+                        <div class="space-y-3 pt-4 border-t border-slate-100 mt-4">
+                            <label class="block text-sm font-semibold text-slate-700">1.2
+                                ปรับปรุงเงินพิเศษผู้เล่นในรอบนี้</label>
+                            <div class="flex gap-3">
+                                <div class="relative rounded-xl shadow-sm flex-grow">
+                                    <div class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-4">
+                                        <span class="text-slate-400 font-medium text-sm">฿</span>
+                                    </div>
+                                    <input type="text" id="adminSpecialMoneyInput" placeholder="กรอกตัวเลข - หรือ +"
+                                        class="block w-full rounded-xl border border-slate-200 py-3 pl-9 pr-12 text-slate-900 placeholder:text-slate-400 focus:border-indigo-500 focus:ring-indigo-500 font-sm outline-none transition">
+                                    <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-4">
+                                        <span class="text-slate-400 text-xs font-semibold">THB</span>
+                                    </div>
+                                </div>
+                                <button onclick="applySpecialMoney()"
+                                    class="py-3 px-6 bg-indigo-600 hover:bg-indigo-750 text-white font-bold rounded-xl text-xs transition shadow-md shadow-indigo-600/10 flex items-center gap-1.5 shrink-0">
+                                    <i class="fa-solid fa-calculator"></i> คำนวณเงินพิเศษ
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Net Value Realtime Box for Admin Overview -->
+                        <div
+                            class="mt-4 bg-emerald-50 rounded-xl p-4 border border-emerald-100 flex items-center justify-between">
+                            <div>
+                                <span
+                                    class="text-xs font-semibold text-slate-500 block uppercase">เงินเริ่มต้นจำลองส่วนกลาง</span>
+                                <span id="adminNetPortfolioVal"
+                                    class="text-xl font-black text-emerald-700">฿10,000,000</span>
+                            </div>
+                            <div class="text-right">
+                                <span class="text-xs font-semibold text-slate-500 block">สถานะแผงควบคุม</span>
+                                <span id="adminReturnRate" class="text-sm font-bold text-slate-600">พร้อมใช้งาน</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Custom Situation Panel (Step 2) -->
+                    <div class="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm space-y-5">
+                        <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+                            <h3 class="font-bold text-slate-900 flex items-center gap-2">
+                                <i class="fa-solid fa-bolt text-amber-500"></i>
+                                <span>2. กำหนดสัดส่วนตัวแปรผลกระทบ</span>
+                            </h3>
+                        </div>
+
+                        <!-- Custom Situation Name and Description Inputs -->
+                        <div class="grid grid-cols-1 gap-3 bg-slate-50 p-3.5 rounded-xl border border-slate-100">
+                            <div>
+                                <label class="block text-[12px] font-bold text-slate-600 mb-1">หัวข้อสถานการณ์
+                                    (กำหนดเอง)</label>
+                                <input type="text" id="customSituationTitle" value="สถานการณ์แบบกำหนดเอง"
+                                    class="w-full bg-white border border-slate-200 rounded-lg py-1.5 px-3 text-xs focus:border-brand-500 outline-none transition text-slate-800">
+                            </div>
+                            <div>
+                                <label
+                                    class="block text-[12px] font-bold text-slate-600 mb-1">คำอธิบายรายละเอียดสถานการณ์</label>
+                                <textarea id="customSituationDesc" rows="2"
+                                    class="w-full bg-white border border-slate-200 rounded-lg py-1.5 px-3 text-xs focus:border-brand-500 outline-none transition text-slate-800"
+                                    placeholder="กำหนดตัวแปรความผันผวนแบบอิสระตามความเหมาะสม..."></textarea>
+                            </div>
+                        </div>
+
+                        <!-- Dynamic Modifier Inputs Container -->
+                        <div class="space-y-4" id="customModifiersContainer">
+                        </div>
+
+                        <!-- Custom Action Trigger -->
+                        <button onclick="triggerCustomSituation()" id="btnCustomSituation"
+                            class="w-full py-3 px-4 bg-slate-900 hover:bg-slate-800 text-white rounded-xl text-sm transition shadow-lg shadow-slate-900/10 flex items-center justify-center gap-2">
+                            <i class="fa-solid fa-paper-plane" id="customSituationIcon"></i>
+                            <span>ยิงผลกระทบสถานการณ์กำหนดเอง</span>
+                        </button>
+
+                        <button onclick="createCustomPresetSituation()"
+                            class="py-3 px-4 bg-indigo-700 text-white rounded-xl text-sm transition shadow-lg shadow-indigo-650/10 flex items-center justify-center gap-2">
+                            <i class="fa-solid fa-circle-plus"></i>
+                            <span>สร้างสถานการณ์สำเร็จรูป</span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Right Column (Presets Panel - 50%) -->
+                <div class="w-full lg:w-1/2 flex flex-col gap-6">
+                    <div class="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm space-y-4">
+                        <div class="flex items-center justify-between">
+                            <h3 class="font-bold text-slate-900 text-sm flex items-center gap-2">
+                                <i class="fa-solid fa-circle-play text-brand-500"></i>
+                                <span>สถานการณ์จำลอง</span>
+                            </h3>
+                            <button onclick="resetAllPresets()" title="รีเซ็ตสถานการณ์ทั้งหมด"
+                                class="p-1.5 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-lg transition flex items-center justify-center">
+                                <i class="fa-solid fa-rotate"></i>
+                            </button>
+                        </div>
+
+                        <div class="grid grid-cols-1 gap-4">
+                            <!-- Preset Pandemic -->
+                            <div id="cardPresetPandemic"
+                                class="p-4 border border-slate-200 rounded-xl bg-white transition text-xs flex flex-col gap-3 relative">
+                                <div>
+                                    <div class="font-bold flex items-center justify-between text-rose-600"
+                                        id="presetPandemicTitle">
+                                        <span class="flex items-center gap-1.5">
+                                            <i class="fa-solid fa-virus"></i>
+                                            <span id="lblPresetTitle_pandemic">โรคระบาดระลอกใหม่</span>
+                                        </span>
+                                    </div>
+                                    <p class="text-slate-500 leading-normal mt-1" id="lblPresetDesc_pandemic">
+                                        ประกันสุขภาพปกป้องพอร์ต กองทุนตก -25%</p>
+                                </div>
+                                <div class="flex items-center justify-between border-t border-slate-100 pt-2.5 mt-auto">
+                                    <div class="flex items-center gap-2">
+                                        <button type="button" onclick="openEditPresetLightbox('pandemic', event)"
+                                            class="text-indigo-600 hover:bg-indigo-50 px-2 py-1 border border-slate-200 rounded transition flex items-center justify-center gap-1 font-bold"
+                                            title="แก้ไขสัดส่วนผลกระทบ">
+                                            <i class="fa-solid fa-pen-to-square"></i> แก้ไข
+                                        </button>
+                                        <button type="button" onclick="confirmDeletePreset('pandemic', event)"
+                                            class="text-rose-600 hover:bg-rose-50 px-2 py-1 border border-slate-200 rounded transition flex items-center justify-center gap-1 font-bold"
+                                            title="ลบสถานการณ์">
+                                            <i class="fa-solid fa-trash-can"></i> ลบ
+                                        </button>
+                                    </div>
+                                    <div>
+                                        <button type="button" id="btnPresetPandemic" onclick="togglePreset('pandemic')"
+                                            class="py-1 px-3.5 rounded border border-slate-200 font-bold flex items-center gap-1.5 transition text-slate-700 bg-white hover:bg-slate-50 shadow-sm"
+                                            disabled>
+                                            <i class="fa-solid fa-play" id="iconPandemic"></i> Play
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Preset RateHike -->
+                            <div id="cardPresetRateHike"
+                                class="p-4 border border-slate-200 rounded-xl bg-white transition text-xs flex flex-col gap-3 relative">
+                                <div>
+                                    <div class="font-bold flex items-center justify-between text-amber-600"
+                                        id="presetRateHikeTitle">
+                                        <span class="flex items-center gap-1.5">
+                                            <i class="fa-solid fa-percent"></i>
+                                            <span id="lblPresetTitle_rateHike">เงินเฟ้อ & ขึ้นดอกเบี้ย</span>
+                                        </span>
+                                    </div>
+                                    <p class="text-slate-500 leading-normal mt-1" id="lblPresetDesc_rateHike">
+                                        เงินฝากได้ประโยชน์ +5% แต่กองทุนติดลบ -15%</p>
+                                </div>
+                                <div class="flex items-center justify-between border-t border-slate-100 pt-2.5 mt-auto">
+                                    <div class="flex items-center gap-2">
+                                        <button type="button" onclick="openEditPresetLightbox('rateHike', event)"
+                                            class="text-indigo-600 hover:bg-indigo-50 px-2 py-1 border border-slate-200 rounded transition flex items-center justify-center gap-1 font-bold"
+                                            title="แก้ไขสัดส่วนผลกระทบ">
+                                            <i class="fa-solid fa-pen-to-square"></i> แก้ไข
+                                        </button>
+                                        <button type="button" onclick="confirmDeletePreset('rateHike', event)"
+                                            class="text-rose-600 hover:bg-rose-50 px-2 py-1 border border-slate-200 rounded transition flex items-center justify-center gap-1 font-bold"
+                                            title="ลบสถานการณ์">
+                                            <i class="fa-solid fa-trash-can"></i> ลบ
+                                        </button>
+                                    </div>
+                                    <div>
+                                        <button type="button" id="btnPresetRateHike" onclick="togglePreset('rateHike')"
+                                            class="py-1 px-3.5 rounded border border-slate-200 font-bold flex items-center gap-1.5 transition text-slate-700 bg-white hover:bg-slate-50 shadow-sm"
+                                            disabled>
+                                            <i class="fa-solid fa-play" id="iconRateHike"></i> Play
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Preset BullMarket -->
+                            <div id="cardPresetBullMarket"
+                                class="p-4 border border-slate-200 rounded-xl bg-white transition text-xs flex flex-col gap-3 relative">
+                                <div>
+                                    <div class="font-bold flex items-center justify-between text-emerald-600"
+                                        id="presetBullMarketTitle">
+                                        <span class="flex items-center gap-1.5">
+                                            <i class="fa-solid fa-arrow-trend-up"></i>
+                                            <span id="lblPresetTitle_bullMarket">เศรษฐกิจฟื้นตัวอย่างแรง</span>
+                                        </span>
+                                    </div>
+                                    <p class="text-slate-500 leading-normal mt-1" id="lblPresetDesc_bullMarket">
+                                        กองทุนพุ่งแรง +30% เงินฝากปกติ 0%</p>
+                                </div>
+                                <div class="flex items-center justify-between border-t border-slate-100 pt-2.5 mt-auto">
+                                    <div class="flex items-center gap-2">
+                                        <button type="button" onclick="openEditPresetLightbox('bullMarket', event)"
+                                            class="text-indigo-600 hover:bg-indigo-50 px-2 py-1 border border-slate-200 rounded transition flex items-center justify-center gap-1 font-bold"
+                                            title="แก้ไขสัดส่วนผลกระทบ">
+                                            <i class="fa-solid fa-pen-to-square"></i> แก้ไข
+                                        </button>
+                                        <button type="button" onclick="confirmDeletePreset('bullMarket', event)"
+                                            class="text-rose-600 hover:bg-rose-50 px-2 py-1 border border-slate-200 rounded transition flex items-center justify-center gap-1 font-bold"
+                                            title="ลบสถานการณ์">
+                                            <i class="fa-solid fa-trash-can"></i> ลบ
+                                        </button>
+                                    </div>
+                                    <div>
+                                        <button type="button" id="btnPresetBullMarket"
+                                            onclick="togglePreset('bullMarket')"
+                                            class="py-1 px-3.5 rounded border border-slate-200 font-bold flex items-center gap-1.5 transition text-slate-700 bg-white hover:bg-slate-50 shadow-sm"
+                                            disabled>
+                                            <i class="fa-solid fa-play" id="iconBullMarket"></i> Play
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Preset Retirement -->
+                            <div id="cardPresetRetirement"
+                                class="p-4 border border-slate-200 rounded-xl bg-white transition text-xs flex flex-col gap-3 relative">
+                                <div>
+                                    <div class="font-bold flex items-center justify-between text-blue-600"
+                                        id="presetRetirementTitle">
+                                        <span class="flex items-center gap-1.5">
+                                            <i class="fa-solid fa-umbrella"></i>
+                                            <span id="lblPresetTitle_retirement">ลูกค้าเกษียณกะทันหัน</span>
+                                        </span>
+                                    </div>
+                                    <p class="text-slate-500 leading-normal mt-1" id="lblPresetDesc_retirement">
+                                        ประกันชีวิตช่วยพยุงสิทธิ์ พอร์ตอื่นๆ ลบสลับบวก</p>
+                                </div>
+                                <div class="flex items-center justify-between border-t border-slate-100 pt-2.5 mt-auto">
+                                    <div class="flex items-center gap-2">
+                                        <button type="button" onclick="openEditPresetLightbox('retirement', event)"
+                                            class="text-indigo-600 hover:bg-indigo-50 px-2 py-1 border border-slate-200 rounded transition flex items-center justify-center gap-1 font-bold"
+                                            title="แก้ไขสัดส่วนผลกระทบ">
+                                            <i class="fa-solid fa-pen-to-square"></i> แก้ไข
+                                        </button>
+                                        <button type="button" onclick="confirmDeletePreset('retirement', event)"
+                                            class="text-rose-600 hover:bg-rose-50 px-2 py-1 border border-slate-200 rounded transition flex items-center justify-center gap-1 font-bold"
+                                            title="ลบสถานการณ์">
+                                            <i class="fa-solid fa-trash-can"></i> ลบ
+                                        </button>
+                                    </div>
+                                    <div>
+                                        <button type="button" id="btnPresetRetirement"
+                                            onclick="togglePreset('retirement')"
+                                            class="py-1 px-3.5 rounded border border-slate-200 font-bold flex items-center gap-1.5 transition text-slate-700 bg-white hover:bg-slate-50 shadow-sm"
+                                            disabled>
+                                            <i class="fa-solid fa-play" id="iconRetirement"></i> Play
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Preset PrematureDeath -->
+                            <div id="cardPresetPrematureDeath"
+                                class="p-4 border border-slate-200 rounded-xl bg-white transition text-xs flex flex-col gap-3 relative">
+                                <div>
+                                    <div class="font-bold flex items-center justify-between text-rose-700"
+                                        id="presetPrematureDeathTitle">
+                                        <span class="flex items-center gap-1.5">
+                                            <i class="fa-solid fa-skull-crossbones"></i>
+                                            <span id="lblPresetTitle_prematureDeath">จากไปก่อนเวลาอันควร</span>
+                                        </span>
+                                    </div>
+                                    <p class="text-slate-500 leading-normal mt-1" id="lblPresetDesc_prematureDeath">
+                                        ต้องการประกันชีวิต 30% คุ้มครอง หากขาดหักพอร์ต -15%</p>
+                                </div>
+                                <div class="flex items-center justify-between border-t border-slate-100 pt-2.5 mt-auto">
+                                    <div class="flex items-center gap-2">
+                                        <button type="button" onclick="openEditPresetLightbox('prematureDeath', event)"
+                                            class="text-indigo-600 hover:bg-indigo-50 px-2 py-1 border border-slate-200 rounded transition flex items-center justify-center gap-1 font-bold"
+                                            title="แก้ไขสัดส่วนผลกระทบ">
+                                            <i class="fa-solid fa-pen-to-square"></i> แก้ไข
+                                        </button>
+                                        <button type="button" onclick="confirmDeletePreset('prematureDeath', event)"
+                                            class="text-rose-600 hover:bg-rose-50 px-2 py-1 border border-slate-200 rounded transition flex items-center justify-center gap-1 font-bold"
+                                            title="ลบสถานการณ์">
+                                            <i class="fa-solid fa-trash-can"></i> ลบ
+                                        </button>
+                                    </div>
+                                    <div>
+                                        <button type="button" id="btnPresetPrematureDeath"
+                                            onclick="togglePreset('prematureDeath')"
+                                            class="py-1 px-3.5 rounded border border-slate-200 font-bold flex items-center gap-1.5 transition text-slate-700 bg-white hover:bg-slate-50 shadow-sm"
+                                            disabled>
+                                            <i class="fa-solid fa-play" id="iconPrematureDeath"></i> Play
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Preset Disaster -->
+                            <div id="cardPresetDisaster"
+                                class="p-4 border border-slate-200 rounded-xl bg-white transition text-xs flex flex-col gap-3 relative">
+                                <div>
+                                    <div class="font-bold flex items-center justify-between text-orange-600"
+                                        id="presetDisasterTitle">
+                                        <span class="flex items-center gap-1.5">
+                                            <i class="fa-solid fa-cloud-showers-heavy"></i>
+                                            <span id="lblPresetTitle_disaster">มหาวาตภัยทั่วประเทศ</span>
+                                        </span>
+                                    </div>
+                                    <p class="text-slate-500 leading-normal mt-1" id="lblPresetDesc_disaster">
+                                        กองทุนรวมร่วงดิ่ง -40% ต้องการประกันสุขภาพ 30%</p>
+                                </div>
+                                <div class="flex items-center justify-between border-t border-slate-100 pt-2.5 mt-auto">
+                                    <div class="flex items-center gap-2">
+                                        <button type="button" onclick="openEditPresetLightbox('disaster', event)"
+                                            class="text-indigo-600 hover:bg-indigo-50 px-2 py-1 border border-slate-200 rounded transition flex items-center justify-center gap-1 font-bold"
+                                            title="แก้ไขสัดส่วนผลกระทบ">
+                                            <i class="fa-solid fa-pen-to-square"></i> แก้ไข
+                                        </button>
+                                        <button type="button" onclick="confirmDeletePreset('disaster', event)"
+                                            class="text-rose-600 hover:bg-rose-50 px-2 py-1 border border-slate-200 rounded transition flex items-center justify-center gap-1 font-bold"
+                                            title="ลบสถานการณ์">
+                                            <i class="fa-solid fa-trash-can"></i> ลบ
+                                        </button>
+                                    </div>
+                                    <div>
+                                        <button type="button" id="btnPresetDisaster" onclick="togglePreset('disaster')"
+                                            class="py-1 px-3.5 rounded border border-slate-200 font-bold flex items-center gap-1.5 transition text-slate-700 bg-white hover:bg-slate-50 shadow-sm"
+                                            disabled>
+                                            <i class="fa-solid fa-play" id="iconDisaster"></i> Play
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="text-[12px] text-amber-600 bg-amber-50 p-2.5 rounded-lg border border-amber-200"
+                            id="presetHintMessage">
+                            <i class="fa-solid fa-triangle-exclamation mr-1"></i>
+                            กรุณารอผู้เล่นลงทะเบียนเริ่มต้นเข้าแข่งขัน
+                            เพื่อปลดล็อกระบบ
+                        </div>
+                    </div>
+
+                    <!-- Box 2: Firestore Presets -->
+                    <div class="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm space-y-4">
+                        <div class="flex items-center justify-between pb-1 border-b border-slate-100">
+                            <h3 class="font-bold text-slate-900 text-sm flex items-center gap-2">
+                                <i class="fa-solid fa-database text-brand-500"></i>
+                                <span>คลังสถานการณ์ในระบบทั้งหมด (Firestore)</span>
+                            </h3>
+                        </div>
+                        <div class="grid grid-cols-1 gap-4" id="customPresetsGrid">
+                            <!-- Dynamically populated from RM_situation -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- ================= TAB B: COMPETITORS VIEW ================= -->
+        <section id="tab-content-competitors" class="hidden space-y-6">
+            <div class="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm">
+                <div
+                    class="flex flex-col md:flex-row md:items-center justify-between mb-4 border-b border-slate-100 pb-3 gap-4">
+                    <div class="flex items-center gap-3">
+                        <div class="w-8 h-8 rounded-lg bg-indigo-50 flex items-center justify-center text-indigo-600">
+                            <i class="fa-solid fa-users"></i>
+                        </div>
+                        <div>
+                            <h2 class="font-bold text-slate-900 text-base">รายชื่อผู้เข้าแข่งขันทั้งหมด</h2>
+                            <p class="text-xs text-slate-500">จัดการข้อมูลผู้เข้าแข่งขัน แก้ไขรายชื่อ/สาขา
+                                หรือลบออกจากฐานข้อมูล</p>
+                        </div>
+                    </div>
+                    <!-- Dropdown Filter -->
+                    <div class="flex items-center gap-2 self-start md:self-auto">
+                        <span class="text-xs font-bold text-slate-500">รอบกิจกรรม:</span>
+                        <select id="competitorsRoundSelect" onchange="syncSelectedRound(this.value)"
+                            class="bg-slate-50 border border-slate-200 rounded-xl py-1.5 px-3 font-bold text-xs outline-none focus:border-indigo-500 text-slate-700 min-w-[180px] shadow-sm transition-all">
+                            <option value="all">แสดงทุกรอบ</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="overflow-x-auto">
+                    <table class="w-full text-center border-collapse text-xs">
+                        <thead>
+                            <tr class="border-b border-slate-200 text-slate-700 bg-[#e3edf4] tracking-normal">
+                                <th class="py-3 px-4 font-normal">ลำดับ</th>
+                                <th class="py-3 px-4 font-normal">ชื่อ-นามสกุล</th>
+                                <th class="py-3 px-4 font-normal">ชื่อลูกค้าที่จัด Port</th>
+                                <th class="py-3 px-4 font-normal">เงินขั้นต้น</th>
+                                <th class="py-3 px-4 font-normal">คงเหลือ</th>
+                                <th class="py-3 px-4 font-normal">สัดส่วน</th>
+                                <th class="py-3 px-4 font-normal text-center">จัดการ</th>
+                            </tr>
+                        </thead>
+                        <tbody id="competitorsTableBody"
+                            class="divide-y divide-slate-100 text-slate-700 font-semibold align-top">
+                            <tr>
+                                <td colspan="9" class="py-6 text-center text-slate-400">-- ไม่พบข้อมูลผู้สมัครแข่งขัน --
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+
+        <!-- ================= TAB C: LEADERBOARD VIEW ================= -->
+        <section id="tab-content-leaderboard" class="hidden space-y-6">
+            <div class="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm">
+                <div
+                    class="flex flex-col md:flex-row md:items-center justify-between mb-6 border-b border-slate-100 pb-3 gap-4">
+                    <div class="flex items-center gap-3">
+                        <div class="w-8 h-8 rounded-lg bg-indigo-50 flex items-center justify-center text-indigo-600">
+                            <i class="fa-solid fa-trophy text-amber-500"></i>
+                        </div>
+                        <div>
+                            <h2 class="font-bold text-slate-900 text-base">ตารางสรุปคะแนนผู้เข้าแข่งขัน (Leaderboard)
+                            </h2>
+                            <p class="text-xs text-slate-500">จัดอันดับคะแนนสูงสุดสะสมแบบ Real-time</p>
+                        </div>
+                    </div>
+                    <!-- Dropdown Filter -->
+                    <div class="flex items-center gap-2 self-start md:self-auto">
+                        <span class="text-xs font-bold text-slate-500">รอบกิจกรรม:</span>
+                        <select id="leaderboardRoundSelect" onchange="syncSelectedRound(this.value)"
+                            class="bg-slate-50 border border-slate-200 rounded-xl py-1.5 px-3 font-bold text-xs outline-none focus:border-indigo-500 text-slate-700 min-w-[180px] shadow-sm transition-all">
+                            <option value="all">แสดงทุกรอบ</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="flex flex-wrap gap-3" id="leaderboardListContainer">
+                    <div class="text-center py-6 text-slate-400 w-full">-- ยังไม่มีผู้เข้าแข่งขันขึ้นกระดานคะแนน --
+                    </div>
+                </div>
+
+                <!-- Leaderboard Charts Grid (Side-by-Side 50/50 Layout) -->
+                <div class="flex flex-col lg:flex-row gap-6 mt-8 pt-6 border-t border-slate-100">
+                    <!-- Left: Stacked Bar Chart (50%) -->
+                    <div class="w-full lg:w-1/2 bg-white rounded-2xl border border-slate-200/80 p-5 shadow-sm">
+                        <h3 class="font-bold text-slate-800 text-sm mb-4 flex items-center gap-1.5">
+                            <i class="fa-solid fa-chart-simple text-indigo-500"></i>
+                            แผนภูมิเปรียบเทียบสัดส่วนและยอดคงเหลือ (บาท)
+                        </h3>
+                        <div
+                            class="w-full h-[320px] bg-slate-50/50 rounded-2xl p-4 border border-slate-100 flex items-center justify-center">
+                            <canvas id="leaderboardChart" class="w-full h-full"></canvas>
+                        </div>
+                    </div>
+
+                    <!-- Right: Overall Portfolio Pie Chart (50%) -->
+                    <div class="w-full lg:w-1/2 bg-white rounded-2xl border border-slate-200/80 p-5 shadow-sm">
+                        <h3 class="font-bold text-slate-800 text-sm mb-4 flex items-center gap-1.5">
+                            <i class="fa-solid fa-chart-pie text-emerald-500"></i>
+                            สรุปภาพรวมสัดส่วนการลงทุนสะสมในแต่ละพอร์ตหลัก
+                        </h3>
+                        <div
+                            class="w-full h-[320px] bg-slate-50/50 rounded-2xl p-4 border border-slate-100 flex items-center justify-center">
+                            <canvas id="leaderboardPieChart" class="w-full h-full"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- ================= TAB: PORT MANAGEMENT ================= -->
+        <section id="tab-content-ports" class="hidden space-y-6 min-h-[700px]">
+            <div class="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm">
+                <!-- Dropdown Filter for Port Management -->
+                <div
+                    class="flex flex-col md:flex-row md:items-center justify-between pb-4 border-b border-slate-100 gap-4 mb-4">
+                    <div>
+                        <h2 class="font-bold text-slate-900 text-base">จัดการผลิตภัณฑ์การลงทุน (Port Management)</h2>
+                        <p class="text-xs text-slate-500">กำหนดรายการพอร์ตหลักและพอร์ตย่อยจำลองสำหรับผู้เข้าแข่งขัน</p>
+                    </div>
+                    <div class="flex items-center gap-2 self-start md:self-auto">
+                        <span class="text-xs font-bold text-slate-500">รอบกิจกรรม:</span>
+                        <select id="portsRoundSelect" onchange="changePortsRound(this.value)"
+                            class="bg-slate-50 border border-slate-200 rounded-xl py-1.5 px-3 font-bold text-xs outline-none focus:border-indigo-500 text-slate-700 min-w-[180px] shadow-sm transition-all">
+                            <option value="admin_control">รอบเริ่มต้น (Default)</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Split layout (50/50) -->
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 pt-4 border-slate-100">
+                    <!-- Left: Main Ports (50% width) -->
+                    <div class="space-y-4">
+                        <div class="flex items-center justify-between">
+                            <h3 class="font-bold text-slate-800 text-sm flex items-center gap-1.5">
+                                <i class="fa-solid fa-folder-open text-indigo-500"></i> พอร์ตหลัก (Main Categories)
+                            </h3>
+                            <button onclick="openAddPortLightbox()"
+                                class="py-1.5 px-3 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-lg text-[11px] transition shadow-md shadow-indigo-600/10 flex items-center gap-1.5">
+                                <i class="fa-solid fa-plus"></i> เพิ่ม Port ใหม่
+                            </button>
+                        </div>
+                        <div class="overflow-x-auto border border-slate-200 rounded-xl bg-slate-50/20">
+                            <table class="w-full text-center border-collapse text-xs">
+                                <thead>
+                                    <tr class="border-b border-slate-200 text-slate-700 bg-[#e3edf4] tracking-normal">
+                                        <th class="py-3 px-4 w-14 text-center">Icon</th>
+                                        <th class="py-3 px-4">ชื่อ Port</th>
+                                        <th class="py-3 px-4 text-center">สถานะ</th>
+                                        <th class="py-3 px-4 text-center">จัดการ</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="portsTableBody"
+                                    class="divide-y divide-slate-100 text-slate-700 font-semibold align-top cursor-pointer bg-white">
+                                    <tr>
+                                        <td colspan="5" class="py-6 text-center text-slate-400">-- ไม่พบข้อมูล Port --
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <!-- Right: Sub-ports & Excel Upload (50% width) -->
+                    <div
+                        class="space-y-4 bg-slate-50/50 p-5 rounded-2xl border border-slate-200/60 flex flex-col min-h-[400px]">
+                        <!-- Selected category label -->
+                        <div class="pb-3 border-b border-slate-100 flex items-center justify-between">
+                            <div>
+                                <h3 class="font-black text-slate-900 text-sm" id="selectedPortTitle">
+                                    กรุณาเลือกพอร์ตหลักฝั่งซ้าย</h3>
+                                <p class="text-[10px] text-slate-400 font-semibold mt-0.5">
+                                    จัดการกองทุนย่อยและสินทรัพย์ย่อยในหมวดนี้</p>
+                            </div>
+                            <div class="flex items-center gap-1.5 hidden" id="subPortActionButtons">
+                                <button onclick="toggleExcelUploadArea()"
+                                    class="py-1.5 px-3 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-bold rounded-lg text-[11px] transition flex items-center gap-1">
+                                    <i class="fa-solid fa-file-excel"></i> Upload Excel
+                                </button>
+                                <button onclick="openAddSubPortLightbox()"
+                                    class="py-1.5 px-3 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-lg text-[11px] transition flex items-center gap-1">
+                                    <i class="fa-solid fa-plus"></i> เพิ่มพอร์ตย่อย
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Excel Upload Panel (only active when category is clicked) -->
+                        <div id="subPortExcelUploadArea" class="hidden space-y-3 pt-2">
+                            <div
+                                class="border-2 border-dashed border-indigo-200 bg-indigo-50/20 rounded-2xl p-4 text-center hover:border-indigo-400 transition-all relative">
+                                <i class="fa-solid fa-file-excel text-2xl text-indigo-500 mb-1.5 block"></i>
+                                <span class="text-xs font-bold text-slate-700 block">นำเข้าข้อมูลพอร์ตย่อยจาก
+                                    Excel</span>
+                                <span class="text-[10px] text-slate-400 block mt-0.5">รองรับไฟล์ .xlsx หรือ .xls
+                                    (คอลัมน์ซ้ายคือชื่อพอร์ตหลัก คอลัมน์ขวาคือชื่อพอร์ตย่อย)</span>
+                                <input type="file" id="excelSubPortFile" accept=".xlsx, .xls"
+                                    onchange="importSubPortsExcel(event)"
+                                    class="absolute inset-0 opacity-0 cursor-pointer w-full h-full">
+                            </div>
+                        </div>
+
+                        <!-- Sub-ports List Table -->
+                        <div class="flex-grow pt-2">
+                            <h4 class="text-slate-700 text-xs mb-2 tracking-wide">รายชื่อพอร์ตย่อย</h4>
+                            <div class="overflow-y-auto max-h-[500px] border border-slate-200 rounded-xl bg-white">
+                                <table class="w-full text-left border-collapse text-xs">
+                                    <thead>
+                                        <tr
+                                            class="border-b border-slate-200 text-slate-700 bg-[#e3edf4] tracking-normal">
+                                            <th class="py-2.5 px-4">
+                                                ประเภทกองทุน
+                                            </th>
+                                            <th class="py-2.5 px-4">
+                                                ชื่อกองทุน
+                                            </th>
+                                            <th class="py-2.5 px-4 text-center w-20">จัดการ</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="subPortsTableBody"
+                                        class="divide-y divide-slate-100 text-slate-700 align-middle">
+                                        <tr>
+                                            <td colspan="3" class="py-6 text-center text-slate-400">--
+                                                กรุณาเลือกพอร์ตย่อย และชื่อกองทุน --</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- ================= EDIT COMPETITOR LIGHTBOX ================= -->
+        <div id="editCompetitorLightbox"
+            class="hidden fixed inset-0 bg-slate-900/80 z-50 flex items-center justify-center p-3 animate-fade-in">
+            <div
+                class="bg-white w-full max-w-[400px] rounded-[32px] p-6 shadow-2xl border border-slate-100 space-y-4 text-xs text-slate-700">
+                <div class="text-center pb-2 border-b border-slate-100">
+                    <div
+                        class="w-10 h-10 bg-indigo-50 text-indigo-600 rounded-full flex items-center justify-center mx-auto text-lg mb-2">
+                        <i class="fa-solid fa-user-pen"></i>
+                    </div>
+                    <h3 class="font-black text-slate-900 text-sm">แก้ไขข้อมูลผู้เข้าแข่งขัน</h3>
+                    <p class="text-[10px] text-slate-400">อัปเดตรายละเอียด หรือแก้ไขคะแนนของผู้เข้าแข่งขัน</p>
+                </div>
+
+                <input type="hidden" id="editClientId">
+
+                <div class="space-y-3">
+                    <div>
+                        <label class="block text-[10px] font-bold text-slate-600 mb-1 uppercase">ชื่อ-นามสกุล</label>
+                        <input type="text" id="editClientName"
+                            class="w-full bg-slate-50 border border-slate-200 rounded-xl py-2 px-3 font-semibold focus:border-indigo-500 outline-none text-slate-800">
+                    </div>
+
+                    <div>
+                        <label class="block text-[10px] font-bold text-slate-600 mb-1 uppercase">สาขา (Branch)</label>
+                        <input type="text" id="editClientBranch"
+                            class="w-full bg-slate-50 border border-slate-200 rounded-xl py-2 px-3 font-semibold focus:border-indigo-500 outline-none text-slate-800">
+                    </div>
+
+                    <div>
+                        <label class="block text-[10px] font-bold text-slate-600 mb-1 uppercase">สังกัด
+                            (Department)</label>
+                        <input type="text" id="editClientAffiliation"
+                            class="w-full bg-slate-50 border border-slate-200 rounded-xl py-2 px-3 font-semibold focus:border-indigo-500 outline-none text-slate-800">
+                    </div>
+
+                    <div>
+                        <label class="block text-[10px] font-bold text-slate-600 mb-1 uppercase">ชื่อลูกค้าที่จัด
+                            Port</label>
+                        <input type="text" id="editCustomerName"
+                            class="w-full bg-slate-50 border border-slate-200 rounded-xl py-2 px-3 font-semibold focus:border-indigo-500 outline-none text-slate-800">
+                    </div>
+
+                    <div>
+                        <label class="block text-[10px] font-bold text-slate-600 mb-1 uppercase">รูปถ่ายประจำตัว
+                            (Photo)</label>
+                        <div class="flex items-center gap-3">
+                            <div
+                                class="relative w-12 h-12 rounded-full border border-slate-200 bg-slate-50 flex items-center justify-center overflow-hidden">
+                                <img id="editPreviewClientPhoto" class="hidden w-full h-full object-cover">
+                                <i id="editPlaceholderPhotoIcon" class="fa-solid fa-user text-slate-400 text-lg"></i>
+                            </div>
+                            <input type="file" id="editInputClientPhoto" accept="image/*" class="hidden"
+                                onchange="handleAdminPhotoUpload(this)">
+                            <button type="button" onclick="document.getElementById('editInputClientPhoto').click()"
+                                class="py-1 px-3 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-lg border transition text-[10px]">
+                                เลือกรูปภาพใหม่
+                            </button>
+                        </div>
+                    </div>
+
+                    <input type="hidden" id="editClientHP" value="100">
+                    <div>
+                        <label class="block text-[10px] font-bold text-slate-600 mb-1 uppercase">คะแนนสะสม</label>
+                        <input type="number" id="editClientScore" min="0"
+                            class="w-full bg-slate-50 border border-slate-200 rounded-xl py-2 px-3 font-semibold focus:border-indigo-500 outline-none text-slate-800 text-center">
+                    </div>
+                </div>
+
+                <div class="flex gap-2 pt-2">
+                    <button onclick="closeEditCompetitorLightbox()"
+                        class="w-1/2 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl transition text-[12px]">ยกเลิก</button>
+                    <button onclick="saveCompetitorEdit()" id="btnSaveCompetitor"
+                        class="w-1/2 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl transition shadow-md shadow-indigo-600/10 text-[12px]">บันทึกข้อมูล</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- ================= VIEW COMPETITOR PORTFOLIO LIGHTBOX ================= -->
+        <div id="competitorPortfolioLightbox"
+            class="hidden fixed inset-0 bg-slate-900/80 z-[60] flex items-center justify-center p-4 overflow-y-auto">
+            <div
+                class="bg-[#f8fafc] w-full max-w-[1000px] md:w-[70%] rounded-[32px] p-6 shadow-2xl border border-slate-100 flex flex-col max-h-[90vh]">
+                <!-- Header block -->
+                <div class="flex items-center justify-between pb-4 border-b border-slate-200">
+                    <div class="flex items-center gap-2.5">
+                        <div class="w-8 h-8 rounded-lg bg-indigo-50 flex items-center justify-center text-indigo-600">
+                            <i class="fa-solid fa-briefcase"></i>
+                        </div>
+                        <div>
+                            <h3 class="font-extrabold text-slate-900 text-sm" id="viewPortTeamName">
+                                รายละเอียดพอร์ตของทีม</h3>
+                            <p class="text-[10px] text-slate-400">เปรียบเทียบสัดส่วนและการจัดสรรเงินสะสมจำลอง</p>
+                        </div>
+                    </div>
+
+                    <div class="flex items-center gap-2">
+                        <div class="bg-indigo-50 border border-indigo-100 rounded-lg px-2.5 py-1 text-center">
+                            <span
+                                class="text-[9px] text-slate-400 block font-bold uppercase leading-none mb-0.5">มูลค่าพอร์ตคงเหลือ</span>
+                            <strong id="viewPortTotalVal" class="text-[14px] text-indigo-600 font-black">฿0</strong>
+                        </div>
+                        <div class="bg-emerald-50 border border-emerald-100 rounded-lg px-2.5 py-1 text-center"
+                            id="viewPortYieldBadge">
+                            <span
+                                class="text-[9px] text-slate-400 block font-bold uppercase leading-none mb-0.5">％เพิ่ม(ลด)</span>
+                            <strong id="viewPortYieldVal" class="text-[14px] text-emerald-600 font-black">0.00%</strong>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Body (Scrollable list of ports) -->
+                <div class="flex-grow overflow-y-auto py-4 space-y-4 text-xs" id="viewPortListContainer">
+                    <!-- Dynamic rendering of ports -->
+                </div>
+
+                <!-- Footer buttons -->
+                <div class="pt-4 border-t border-slate-200 flex justify-end">
+                    <button onclick="closeCompetitorPortfolioLightbox()"
+                        class="px-6 py-2.5 bg-slate-150 hover:bg-slate-200 text-slate-700 font-bold rounded-xl transition text-[12px] flex items-center gap-1.5 shadow-sm">
+                        <i class="fa-solid fa-xmark"></i> ปิดหน้าต่างนี้
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- ================= EDIT PRESET LIGHTBOX ================= -->
+        <div id="editPresetLightbox"
+            class="hidden fixed inset-0 bg-slate-900/80 z-50 flex items-center justify-center p-3 animate-fade-in">
+            <div
+                class="bg-white w-full max-w-[70%] md:w-[70%] rounded-[32px] p-6 shadow-2xl border border-slate-100 space-y-4 max-h-[90vh] overflow-y-auto text-xs text-slate-700">
+                <div class="text-center pb-2 border-b border-slate-100">
+                    <div
+                        class="w-10 h-10 bg-indigo-50 text-indigo-600 rounded-full flex items-center justify-center mx-auto text-lg mb-2">
+                        <i class="fa-solid fa-sliders-h"></i>
+                    </div>
+                    <h3 class="font-black text-slate-900 text-sm">แก้ไขตัวแปรภัยพิบัติ (Preset Editor)</h3>
+                    <p class="text-[10px] text-slate-400">ปรับแต่งผลกระทบเพื่อใช้ทดสอบพอร์ตจริง</p>
+                </div>
+
+                <input type="hidden" id="editPresetTargetType">
+
+                <div class="space-y-3">
+                    <div>
+                        <label
+                            class="block text-[10px] font-bold text-slate-600 mb-1 uppercase tracking-wide">หัวข้อสถานการณ์</label>
+                        <input type="text" id="editPresetTitle"
+                            class="w-full bg-slate-50 border border-slate-200 rounded-xl py-2 px-3 font-semibold focus:border-indigo-500 outline-none text-slate-800">
+                    </div>
+
+                    <div>
+                        <label
+                            class="block text-[10px] font-bold text-slate-600 mb-1 uppercase tracking-wide">คำอธิบายรายละเอียด</label>
+                        <textarea id="editPresetDesc" rows="2"
+                            class="w-full bg-slate-50 border border-slate-200 rounded-xl py-2 px-3 font-semibold focus:border-indigo-500 outline-none text-slate-800"></textarea>
+                    </div>
+
+                    <div>
+                        <label
+                            class="block text-[10px] font-bold text-slate-600 mb-1 uppercase tracking-wide">สัดส่วนผลกระทบผลิตภัณฑ์
+                            (% เปลี่ยนแปลง)</label>
+                        <!-- Dynamic Preset Modifier Inputs Container -->
+                        <div id="presetModifiersContainer" class="space-y-4">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="flex gap-2 pt-2">
+                    <button onclick="closeEditPresetLightbox()"
+                        class="w-1/2 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl transition text-[12px]">ยกเลิก</button>
+                    <button onclick="savePresetConfig()" id="btnSavePreset"
+                        class="w-1/2 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl transition shadow-md shadow-indigo-600/10 text-[12px]">บันทึกการตั้งค่า</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- ================= ADD/EDIT ROUND LIGHTBOX ================= -->
+        <div id="roundLightbox"
+            class="hidden fixed inset-0 bg-slate-900/80 z-50 flex items-start justify-center p-3 overflow-y-auto animate-fade-in pt-10">
+            <div
+                class="bg-white w-full md:max-w-[70%] md:w-[70%] max-w-[95%] rounded-[32px] p-6 shadow-2xl border border-slate-100 space-y-4 text-xs text-slate-700 my-auto">
+                <div class="text-center pb-2 border-b border-slate-100">
+                    <div
+                        class="w-10 h-10 bg-indigo-50 text-indigo-600 rounded-full flex items-center justify-center mx-auto text-lg mb-2">
+                        <i class="fa-solid fa-calendar-plus" id="roundLightboxIcon"></i>
+                    </div>
+                    <h3 class="font-black text-slate-900 text-sm" id="roundLightboxTitle">เพิ่มรอบกิจกรรมใหม่</h3>
+                    <p class="text-[10px] text-slate-400">กรอกข้อมูลลูกค้าและข้อกำหนดทางการเงินประจำรอบ</p>
+                </div>
+
+                <input type="hidden" id="roundEditId">
+
+                <div class="space-y-3">
+                    <div>
+                        <label class="block text-[10px] font-bold text-slate-600 mb-1 uppercase">ชื่อรอบ</label>
+                        <input type="text" id="roundName" placeholder="เช่น รอบเช้าวันที่ 27, Round 1"
+                            class="w-full bg-slate-50 border border-slate-200 rounded-xl py-2 px-3 font-semibold focus:border-indigo-500 outline-none text-slate-800">
+                    </div>
+
+                    <div>
+                        <label class="block text-[10px] font-bold text-slate-600 mb-1 uppercase">รูปลูกค้า
+                            (Photo)</label>
+                        <div class="flex items-center gap-3">
+                            <div
+                                class="relative w-12 h-12 rounded-xl border border-slate-200 bg-slate-50 flex items-center justify-center overflow-hidden shrink-0">
+                                <img id="previewRoundPhoto" class="hidden w-full h-full object-cover">
+                                <i id="placeholderRoundPhotoIcon"
+                                    class="fa-solid fa-user-tie text-slate-400 text-lg"></i>
+                            </div>
+                            <input type="file" id="inputRoundPhoto" accept="image/*" class="hidden"
+                                onchange="handleRoundPhotoUpload(this)">
+                            <button type="button" onclick="document.getElementById('inputRoundPhoto').click()"
+                                class="py-1 px-3 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-lg border transition text-[10px]">
+                                เลือกรูปภาพลูกค้า
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-3 gap-3">
+                        <div class="col-span-2">
+                            <label class="block text-[10px] font-bold text-slate-600 mb-1 uppercase">ชื่อ-นามสกุล
+                                ลูกค้า</label>
+                            <input type="text" id="roundCustomerName" placeholder="เช่น คุณ สมชาย ดีใจ"
+                                class="w-full bg-slate-50 border border-slate-200 rounded-xl py-2 px-3 font-semibold focus:border-indigo-500 outline-none text-slate-800">
+                        </div>
+                        <div>
+                            <label class="block text-[10px] font-bold text-slate-600 mb-1 uppercase">อายุ (ปี)</label>
+                            <input type="number" id="roundCustomerAge" placeholder="35" min="1"
+                                class="w-full bg-slate-50 border border-slate-200 rounded-xl py-2 px-3 font-semibold focus:border-indigo-500 outline-none text-slate-800 text-center">
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-3">
+                        <div>
+                            <label class="block text-[10px] font-bold text-slate-600 mb-1 uppercase">เพศ</label>
+                            <select id="roundCustomerGender"
+                                class="w-full bg-slate-50 border border-slate-200 rounded-xl py-2 px-3 font-semibold focus:border-indigo-500 outline-none text-slate-800">
+                                <option value="ชาย">ชาย</option>
+                                <option value="หญิง">หญิง</option>
+                                <option value="อื่นๆ">อื่นๆ</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-[10px] font-bold text-slate-600 mb-1 uppercase">อาชีพ</label>
+                            <input type="text" id="roundCustomerOccupation" placeholder="เช่น ธุรกิจส่วนตัว"
+                                class="w-full bg-slate-50 border border-slate-200 rounded-xl py-2 px-3 font-semibold focus:border-indigo-500 outline-none text-slate-800">
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-3">
+                        <div>
+                            <label class="block text-[10px] font-bold text-slate-600 mb-1 uppercase">รายได้
+                                (บาทต่อเดือน)</label>
+                            <input type="text" id="roundCustomerIncome" placeholder="เช่น 150,000"
+                                class="w-full bg-slate-50 border border-slate-200 rounded-xl py-2 px-3 font-semibold focus:border-indigo-500 outline-none text-slate-800">
+                        </div>
+                        <div>
+                            <label
+                                class="block text-[10px] font-bold text-slate-600 mb-1 uppercase">ระดับความเสี่ยงที่ยอมรับได้</label>
+                            <select id="roundCustomerRisk"
+                                class="w-full bg-slate-50 border border-slate-200 rounded-xl py-2 px-2.5 font-semibold focus:border-indigo-500 outline-none text-slate-800">
+                                <option value="Risk Level 1: เสี่ยงต่ำมาก">Level 1: เสี่ยงต่ำมาก</option>
+                                <option value="Risk Level 2: เสี่ยงต่ำ">Level 2: เสี่ยงต่ำ</option>
+                                <option value="Risk Level 3: เสี่ยงปานกลางค่อนข้างต่ำ">Level 3: เสี่ยงปานกลางค่อนต่ำ
+                                </option>
+                                <option value="Risk Level 4: เสี่ยงปานกลางค่อนข้างสูง" selected>Level 4:
+                                    เสี่ยงปานกลางค่อนสูง</option>
+                                <option value="Risk Level 5: เสี่ยงสูง">Level 5: เสี่ยงสูง</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div>
+                        <label class="block text-[10px] font-bold text-slate-600 mb-1 uppercase">ข้อมูลลูกค้า
+                            (เป้าหมาย/เงื่อนไข)</label>
+                        <textarea id="roundCustomerDetails" rows="2"
+                            placeholder="กรอกข้อมูลเป้าหมายการลงทุน หรือรายละเอียดลูกค้าประจำรอบ..."
+                            class="w-full bg-slate-50 border border-slate-200 rounded-xl py-2 px-3 font-semibold focus:border-indigo-500 outline-none text-slate-800 resize-none"></textarea>
+                    </div>
+
+                    <div class="grid grid-cols-3 gap-3">
+                        <div>
+                            <label
+                                class="block text-[10px] font-bold text-slate-600 mb-1 uppercase">กำหนดเงินลงทุนขั้นต้น
+                                (บาท)</label>
+                            <input type="number" id="roundInitialLimit" placeholder="10000000" min="0"
+                                class="w-full bg-slate-50 border border-slate-200 rounded-xl py-2 px-3 font-semibold focus:border-indigo-500 outline-none text-slate-800 text-center font-bold">
+                        </div>
+                        <div>
+                            <label class="block text-[10px] font-bold text-slate-600 mb-1 uppercase">เงินลงทุนพิเศษ
+                                (บาท)</label>
+                            <input type="number" id="roundSpecialLimit" placeholder="2000000" min="0"
+                                class="w-full bg-slate-50 border border-slate-200 rounded-xl py-2 px-3 font-semibold focus:border-indigo-500 outline-none text-slate-800 text-center font-bold">
+                        </div>
+                        <div>
+                            <label class="block text-[10px] font-bold text-slate-600 mb-1 uppercase">สถานะรอบ</label>
+                            <select id="roundStatus"
+                                class="w-full bg-slate-50 border border-slate-200 rounded-xl py-2 px-2 font-semibold focus:border-indigo-500 outline-none text-slate-800">
+                                <option value="on" selected>เปิด (ON)</option>
+                                <option value="off">ปิด (OFF)</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="flex gap-2 pt-2">
+                    <button onclick="closeRoundLightbox()"
+                        class="w-1/2 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl transition text-[12px]">ยกเลิก</button>
+                    <button onclick="saveRound()" id="btnSaveRound"
+                        class="w-1/2 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl transition shadow-md shadow-indigo-600/10 text-[12px]">บันทึกข้อมูลรอบ</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- ================= ADD PORT LIGHTBOX (60% width) ================= -->
+        <div id="addPortLightbox"
+            class="hidden fixed inset-0 bg-slate-900/80 z-50 flex items-start justify-center p-3 overflow-y-auto animate-fade-in pt-10">
+            <div
+                class="bg-white w-full md:max-w-[60%] md:w-[60%] max-w-[95%] rounded-[32px] p-6 shadow-2xl border border-slate-100 space-y-4 text-xs text-slate-700 my-auto">
+                <div class="text-center pb-2 border-b border-slate-100">
+                    <div
+                        class="w-10 h-10 bg-indigo-50 text-indigo-600 rounded-full flex items-center justify-center mx-auto text-lg mb-2">
+                        <i class="fa-solid fa-briefcase"></i>
+                    </div>
+                    <h3 class="font-black text-slate-900 text-sm">เพิ่ม Port ใหม่</h3>
+                    <p class="text-[10px] text-slate-400">กรอกข้อมูลสำหรับผลิตภัณฑ์จำลองใหม่</p>
+                </div>
+
+                <div class="space-y-4">
+                    <div>
+                        <label class="block text-[10px] font-bold text-slate-600 mb-1 uppercase">ชื่อ Port</label>
+                        <input type="text" id="addPortName" placeholder="เช่น กองทุนตราสารหนี้, ทองคำ"
+                            class="w-full bg-slate-50 border border-slate-200 rounded-xl py-2 px-3 font-semibold focus:border-indigo-500 outline-none text-slate-800">
+                    </div>
+                    <div>
+                        <label class="block text-[10px] font-bold text-slate-600 mb-1 uppercase">Icon (FontAwesome
+                            Class)</label>
+                        <input type="text" id="addPortIcon" placeholder="เช่น fa-piggy-bank, fa-coins, fa-gem"
+                            class="w-full bg-slate-50 border border-slate-200 rounded-xl py-2 px-3 font-semibold focus:border-indigo-500 outline-none text-slate-800">
+                        <p class="text-[10px] text-slate-450 mt-1">สามารถเลือกใช้คลาสเช่น fa-piggy-bank, fa-chart-line,
+                            fa-shield-heart, fa-heart-pulse, fa-hand-holding-dollar, fa-coins, fa-gem</p>
+                    </div>
+                    <div>
+                        <label class="block text-[10px] font-bold text-slate-600 mb-1 uppercase">สถานะการใช้งาน</label>
+                        <select id="addPortStatus"
+                            class="w-full bg-slate-50 border border-slate-200 rounded-xl py-2 px-3 font-semibold focus:border-indigo-500 outline-none text-slate-800">
+                            <option value="on">เปิด (ON)</option>
+                            <option value="off">ปิด (OFF)</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-[10px] font-bold text-slate-600 mb-1 uppercase">ลำดับการแสดงผล</label>
+                        <input type="number" id="addPortDisplayOrder" value="1" min="1"
+                            class="w-full bg-slate-50 border border-slate-200 rounded-xl py-2 px-3 font-semibold focus:border-indigo-500 outline-none text-slate-800">
+                    </div>
+                    <div>
+                        <label class="block text-[10px] font-bold text-slate-600 mb-1 uppercase">การล็อกสัดส่วน (Lock
+                            Type)</label>
+                        <select id="addPortLockType"
+                            class="w-full bg-slate-50 border border-slate-200 rounded-xl py-2 px-3 font-semibold focus:border-indigo-500 outline-none text-slate-800">
+                            <option value="none">ไม่ล็อก (ปรับเพิ่ม/ลดได้อิสระ)</option>
+                            <option value="lockDecrease">ล็อกห้ามลด % (ปรับเพิ่มได้อย่างเดียว ห้ามลด)</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="flex gap-2 pt-2">
+                    <button onclick="closeAddPortLightbox()"
+                        class="w-1/2 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl transition text-[12px]">ยกเลิก</button>
+                    <button onclick="savePort()"
+                        class="w-1/2 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl transition shadow-md shadow-indigo-600/10 text-[12px]">บันทึกข้อมูล</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- ================= EDIT PORT LIGHTBOX (50% width) ================= -->
+        <div id="editPortLightbox"
+            class="hidden fixed inset-0 bg-slate-900/80 z-50 flex items-start justify-center p-3 overflow-y-auto animate-fade-in pt-10">
+            <div
+                class="bg-white w-full md:max-w-[50%] md:w-[50%] max-w-[95%] rounded-[32px] p-6 shadow-2xl border border-slate-100 space-y-4 text-xs text-slate-700 my-auto">
+                <div class="text-center pb-2 border-b border-slate-100">
+                    <div
+                        class="w-10 h-10 bg-indigo-50 text-indigo-600 rounded-full flex items-center justify-center mx-auto text-lg mb-2">
+                        <i class="fa-solid fa-briefcase"></i>
+                    </div>
+                    <h3 class="font-black text-slate-900 text-sm">แก้ไขข้อมูล Port</h3>
+                    <p class="text-[10px] text-slate-400">แก้ไขรายละเอียดของผลิตภัณฑ์</p>
+                </div>
+
+                <input type="hidden" id="editPortId">
+
+                <div class="space-y-4">
+                    <div>
+                        <label class="block text-[10px] font-bold text-slate-600 mb-1 uppercase">ลำดับการแสดงผล</label>
+                        <input type="number" id="editPortDisplayOrder" value="1" min="1"
+                            class="w-full bg-slate-50 border border-slate-200 rounded-xl py-2 px-3 font-semibold focus:border-indigo-500 outline-none text-slate-800">
+                    </div>
+                    <div>
+                        <label class="block text-[10px] font-bold text-slate-600 mb-1 uppercase">Icon (FontAwesome
+                            Class)</label>
+                        <input type="text" id="editPortIcon" placeholder="เช่น fa-piggy-bank, fa-coins, fa-gem"
+                            class="w-full bg-slate-50 border border-slate-200 rounded-xl py-2 px-3 font-semibold focus:border-indigo-500 outline-none text-slate-800">
+                    </div>
+                    <div>
+                        <label class="block text-[10px] font-bold text-slate-600 mb-1 uppercase">ชื่อ Port</label>
+                        <input type="text" id="editPortName" placeholder="เช่น กองทุนตราสารหนี้, ทองคำ"
+                            class="w-full bg-slate-50 border border-slate-200 rounded-xl py-2 px-3 font-semibold focus:border-indigo-500 outline-none text-slate-800">
+                    </div>
+                    <div>
+                        <label class="block text-[10px] font-bold text-slate-600 mb-1 uppercase">การล็อกสัดส่วน (Lock
+                            Type)</label>
+                        <select id="editPortLockType"
+                            class="w-full bg-slate-50 border border-slate-200 rounded-xl py-2 px-3 font-semibold focus:border-indigo-500 outline-none text-slate-800">
+                            <option value="none">ไม่ล็อก (ปรับเพิ่ม/ลดได้อิสระ)</option>
+                            <option value="lockDecrease">ล็อกห้ามลด % (ปรับเพิ่มได้อย่างเดียว ห้ามลด)</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-[10px] font-bold text-slate-600 mb-1 uppercase">สถานะการใช้งาน</label>
+                        <select id="editPortStatus"
+                            class="w-full bg-slate-50 border border-slate-200 rounded-xl py-2 px-3 font-semibold focus:border-indigo-500 outline-none text-slate-800">
+                            <option value="on">เปิด (ON)</option>
+                            <option value="off">ปิด (OFF)</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="flex gap-2 pt-2">
+                    <button onclick="closeEditPortLightbox()"
+                        class="w-1/2 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl transition text-[12px]">ยกเลิก</button>
+                    <button onclick="savePortEdit()"
+                        class="w-1/2 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl transition shadow-md shadow-indigo-600/10 text-[12px]">บันทึกการแก้ไข</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- ================= ADD SUB-PORT LIGHTBOX (50% width) ================= -->
+        <div id="addSubPortLightbox"
+            class="hidden fixed inset-0 bg-slate-900/80 z-50 flex items-start justify-center p-3 overflow-y-auto animate-fade-in pt-10">
+            <div
+                class="bg-white w-full md:max-w-[50%] md:w-[50%] max-w-[95%] rounded-[32px] p-6 shadow-2xl border border-slate-100 space-y-4 text-xs text-slate-700 my-auto">
+                <div class="text-center pb-2 border-b border-slate-100">
+                    <div
+                        class="w-10 h-10 bg-indigo-50 text-indigo-600 rounded-full flex items-center justify-center mx-auto text-lg mb-2">
+                        <i class="fa-solid fa-plus"></i>
+                    </div>
+                    <h3 class="font-black text-slate-900 text-sm">เพิ่มพอร์ตย่อยใหม่</h3>
+                    <p class="text-[10px] text-slate-400">กรอกข้อมูลพอร์ตย่อย / กองทุนย่อยสำหรับกลุ่มที่เลือก</p>
+                </div>
+
+                <input type="hidden" id="addSubPortParentId">
+
+                <div class="space-y-4">
+                    <div>
+                        <label class="block text-[10px] font-bold text-slate-600 mb-1 uppercase">ประเภทพอร์ตย่อย /
+                            ประเภทกองทุน</label>
+                        <input type="text" id="addSubPortType"
+                            placeholder="เช่น กองทุนหุ้นต่างประเทศ, ตราสารหนี้ระยะสั้น"
+                            class="w-full bg-slate-50 border border-slate-200 rounded-xl py-2 px-3 font-semibold focus:border-indigo-500 outline-none text-slate-800">
+                    </div>
+                    <div>
+                        <label class="block text-[10px] font-bold text-slate-650 mb-1 uppercase">ชื่อกองทุน
+                            (FundName)</label>
+                        <input type="text" id="addSubPortName" placeholder="เช่น ES-FINTECH, K-SF-A"
+                            class="w-full bg-slate-50 border border-slate-200 rounded-xl py-2 px-3 font-semibold focus:border-indigo-500 outline-none text-slate-800">
+                    </div>
+                </div>
+
+                <div class="flex gap-2 pt-2">
+                    <button onclick="closeAddSubPortLightbox()"
+                        class="w-1/2 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl transition text-[12px]">ยกเลิก</button>
+                    <button onclick="saveSubPortManual()"
+                        class="w-1/2 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl transition shadow-md shadow-indigo-600/10 text-[12px]">บันทึกพอร์ตย่อย</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- ================= EDIT SUB-PORT LIGHTBOX (50% width) ================= -->
+        <div id="editSubPortLightbox"
+            class="hidden fixed inset-0 bg-slate-900/80 z-50 flex items-start justify-center p-3 overflow-y-auto animate-fade-in pt-10">
+            <div
+                class="bg-white w-full md:max-w-[50%] md:w-[50%] max-w-[95%] rounded-[32px] p-6 shadow-2xl border border-slate-100 space-y-4 text-xs text-slate-700 my-auto">
+                <div class="text-center pb-2 border-b border-slate-100">
+                    <div
+                        class="w-10 h-10 bg-indigo-50 text-indigo-600 rounded-full flex items-center justify-center mx-auto text-lg mb-2">
+                        <i class="fa-solid fa-edit"></i>
+                    </div>
+                    <h3 class="font-black text-slate-900 text-sm">แก้ไขพอร์ตย่อย</h3>
+                    <p class="text-[10px] text-slate-400">แก้ไขข้อมูลพอร์ตย่อย / กองทุนย่อยสำหรับกลุ่มที่เลือก</p>
+                </div>
+
+                <input type="hidden" id="editSubPortId">
+
+                <div class="space-y-4">
+                    <div>
+                        <label class="block text-[10px] font-bold text-slate-600 mb-1 uppercase">ประเภทพอร์ตย่อย /
+                            ประเภทกองทุน</label>
+                        <input type="text" id="editSubPortType"
+                            placeholder="เช่น กองทุนหุ้นต่างประเทศ, ตราสารหนี้ระยะสั้น"
+                            class="w-full bg-slate-50 border border-slate-200 rounded-xl py-2 px-3 font-semibold focus:border-indigo-500 outline-none text-slate-800">
+                    </div>
+                    <div>
+                        <label class="block text-[10px] font-bold text-slate-650 mb-1 uppercase">ชื่อกองทุน</label>
+                        <input type="text" id="editSubPortName" placeholder="เช่น ES-FINTECH, K-SF-A"
+                            class="w-full bg-slate-50 border border-slate-200 rounded-xl py-2 px-3 font-semibold focus:border-indigo-500 outline-none text-slate-800">
+                    </div>
+                </div>
+
+                <div class="flex gap-2 pt-2">
+                    <button onclick="closeEditSubPortLightbox()"
+                        class="w-1/2 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl transition text-[12px]">ยกเลิก</button>
+                    <button onclick="saveSubPortEditManual()"
+                        class="w-1/2 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl transition shadow-md shadow-indigo-600/10 text-[12px]">บันทึกแก้ไขพอร์ตย่อย</button>
+                </div>
+            </div>
+        </div>
+        <!-- ================= CONFIRM DELETE PRESET LIGHTBOX ================= -->
+        <div id="confirmDeletePresetLightbox"
+            class="hidden fixed inset-0 bg-slate-900/80 z-[99999] flex items-center justify-center p-3 animate-fade-in">
+            <div class="bg-white rounded-3xl max-w-sm w-full p-6 shadow-2xl border border-slate-100 space-y-4">
+                <div class="text-center space-y-2">
+                    <div
+                        class="w-12 h-12 rounded-full bg-rose-50 text-rose-600 flex items-center justify-center mx-auto text-xl shadow-inner">
+                        <i class="fa-solid fa-circle-exclamation"></i>
+                    </div>
+                    <h3 class="font-black text-slate-900 text-sm">ยืนยันการลบสถานการณ์</h3>
+                    <p class="text-xs text-slate-500 leading-relaxed">
+                        คุณต้องการลบกล่องสถานการณ์จำลองนี้ออกใช่หรือไม่? การดำเนินการนี้ไม่สามารถย้อนกลับได้</p>
+                </div>
+
+                <input type="hidden" id="deletePresetTargetType">
+
+                <div class="flex gap-2 pt-2">
+                    <button onclick="closeConfirmDeletePresetLightbox()"
+                        class="w-1/2 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl transition text-[12px]">ยกเลิก</button>
+                    <button onclick="deletePresetConfirm()"
+                        class="w-1/2 py-2.5 bg-rose-600 hover:bg-rose-700 text-white font-bold rounded-xl transition shadow-md shadow-rose-600/10 text-[12px]">ยืนยันการลบ</button>
+                </div>
+            </div>
+        </div>
+
+    </main>
+    <script src="js/admin.js?v=20260701"></script>
+</body>
+
+</html>
