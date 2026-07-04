@@ -108,6 +108,10 @@
                 class="py-3 px-1 border-b-2 border-transparent text-slate-500 hover:text-slate-800 font-semibold flex items-center gap-2 transition-all">
                 <i class="fa-solid fa-trophy"></i> Leaderboard
             </button>
+            <button onclick="switchTab('summary')" id="tabBtn-summary"
+                class="py-3 px-1 border-b-2 border-transparent text-slate-500 hover:text-slate-800 font-semibold flex items-center gap-2 transition-all">
+                <i class="fa-solid fa-chart-line"></i> สรุปสถานการณ์
+            </button>
         </div>
 
         <!-- ================= TAB: ROUND MANAGEMENT ================= -->
@@ -682,6 +686,44 @@
                             class="w-full h-[320px] bg-slate-50/50 rounded-2xl p-4 border border-slate-100 flex items-center justify-center">
                             <canvas id="leaderboardPieChart" class="w-full h-full"></canvas>
                         </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- ================= TAB: SITUATION SUMMARY ================= -->
+        <section id="tab-content-summary" class="hidden space-y-6">
+            <div class="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm">
+                <div
+                    class="flex flex-col md:flex-row md:items-center justify-between mb-6 border-b border-slate-100 pb-3 gap-4">
+                    <div class="flex items-center gap-3">
+                        <div class="w-8 h-8 rounded-lg bg-indigo-50 flex items-center justify-center text-indigo-600">
+                            <i class="fa-solid fa-chart-line"></i>
+                        </div>
+                        <div>
+                            <h2 class="font-bold text-slate-900 text-base">สรุปสถานการณ์ (Situation Summary)</h2>
+                            <p class="text-xs text-slate-500">
+                                มูลค่าพอร์ตของผู้ร่วมกิจกรรมแต่ละคนตามลำดับเหตุการณ์ในรอบที่เลือก</p>
+                        </div>
+                    </div>
+                    <!-- Dropdown Filter -->
+                    <div class="flex items-center gap-2 self-start md:self-auto">
+                        <span class="text-xs font-bold text-slate-500">รอบกิจกรรม:</span>
+                        <select id="summaryRoundSelect" onchange="renderSituationSummary()"
+                            class="bg-slate-50 border border-slate-200 rounded-xl py-1.5 px-3 font-bold text-xs outline-none focus:border-indigo-500 text-slate-700 min-w-[180px] shadow-sm transition-all">
+                        </select>
+                        <button onclick="renderSituationSummary()" title="รีเฟรชข้อมูล"
+                            class="p-2 bg-slate-50 border border-slate-200 rounded-xl text-slate-500 hover:text-indigo-600 hover:border-indigo-200 transition">
+                            <i class="fa-solid fa-rotate"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <div class="w-full h-[440px] bg-slate-50/50 rounded-2xl p-4 border border-slate-100 relative">
+                    <canvas id="situationSummaryChart" class="w-full h-full"></canvas>
+                    <div id="summaryEmptyState"
+                        class="hidden absolute inset-0 flex items-center justify-center text-slate-400 text-xs font-bold">
+                        -- ยังไม่มีประวัติสถานการณ์ในรอบนี้ --
                     </div>
                 </div>
             </div>
