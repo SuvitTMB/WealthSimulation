@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>WealthSim Pro - RM Portfolio (User Portal)</title>
+    <title>WealthSim Pro - RM Portfolio</title>
     <!-- Tailwind CSS for premium responsive styling -->
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -86,7 +86,7 @@
             </button>
             <button id="tabButton-history" onclick="switchActiveTab('history')"
                 class="flex-1 py-2 rounded-xl font-bold text-xs transition duration-200 text-slate-600 hover:bg-slate-100">
-                <i class="fa-solid fa-history mr-1.5"></i> ประวัติการจัดพอร์ต
+                <i class="fa-solid fa-history mr-1.5"></i> ประวัติกิจกรรม
             </button>
         </div>
 
@@ -259,15 +259,15 @@
 
                             <div class="space-y-3" id="onboardingSlidersContainer">
                             </div>
+
+                            <!-- Action Button to Start Game (moved below the sub-port allocation box) -->
+                            <button id="btnSubmitOnboarding" onclick="submitClientProfile()"
+                                class="w-full py-3 bg-brand-500 hover:bg-brand-600 text-white font-bold rounded-xl text-xs transition shadow-md shadow-brand-500/20 flex items-center justify-center gap-2">
+                                <i class="fa-solid fa-circle-check"></i> สร้างโปรไฟล์และเริ่มจำลองพอร์ต
+                            </button>
                         </div>
                     </div>
                 </div>
-
-                <!-- Action Button to Start Game -->
-                <button id="btnSubmitOnboarding" onclick="submitClientProfile()"
-                    class="w-full py-3 bg-brand-500 hover:bg-brand-600 text-white font-bold rounded-xl text-xs transition shadow-md shadow-brand-500/20 flex items-center justify-center gap-2">
-                    <i class="fa-solid fa-circle-check"></i> สร้างโปรไฟล์และเริ่มจำลองพอร์ต
-                </button>
             </div>
 
             <!-- ================= VIEW B: ACTIVE SIMULATION SCREEN (TABBED GRID) ================= -->
@@ -416,17 +416,20 @@
                     </div>
                 </div>
 
-                <!-- TAB CONTENT 2: ALLOCATION HISTORY -->
+                <!-- TAB CONTENT 2: ACTIVITY HISTORY -->
                 <div id="simTabContent-history"
                     class="hidden bg-white rounded-2xl p-6 border border-slate-200 shadow-sm w-full space-y-4 flex flex-col min-h-[400px]">
                     <div id="userTab-history" class="flex flex-col space-y-3 flex-grow">
                         <span class="text-xs font-bold text-slate-500 px-1 block"><i
-                                class="fa-solid fa-list-ul text-sky-500 mr-1"></i>
-                            ประวัติการจัดพอร์ตและคำสั่งตลาด</span>
-                        <!-- Custom logs container -->
-                        <div id="logsConsole"
-                            class="bg-slate-950 text-emerald-400 font-mono text-[12px] p-4 rounded-2xl border border-slate-800 space-y-1.5 overflow-y-auto flex-grow min-h-[350px]">
-                            <!-- Appended dynamically -->
+                                class="fa-solid fa-clock-rotate-left text-sky-500 mr-1"></i>
+                            ประวัติกิจกรรม</span>
+                        <!-- Activity history chart: stacked bars per main port + growth line -->
+                        <div class="relative w-full bg-slate-50/60 border border-slate-100 rounded-2xl p-4 h-[440px]">
+                            <canvas id="activityHistoryChart" class="w-full h-full"></canvas>
+                            <div id="activityHistoryEmpty"
+                                class="absolute inset-0 flex items-center justify-center text-slate-400 text-xs font-bold">
+                                -- ยังไม่มีประวัติกิจกรรมในรอบนี้ --
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -459,7 +462,9 @@
             <div id="summaryLightbox"
                 class="hidden fixed inset-0 bg-slate-900/90 z-[9999] flex items-center justify-center p-3 animate-fade-in">
                 <div
-                    class="bg-white w-full md:max-w-[70%] rounded-[32px] p-5 shadow-2xl border border-slate-100 space-y-4 max-h-[660px] overflow-y-auto">
+                    class="bg-white w-[85%] max-w-[85%] h-[85vh] rounded-[32px] p-5 shadow-2xl border border-slate-100 flex flex-col gap-4">
+                    <!-- Scrollable content area; the close button row below stays fixed -->
+                    <div class="flex-grow overflow-y-auto space-y-4 pr-1">
                     <div class="text-center">
                         <div
                             class="w-14 h-14 bg-gradient-to-tr from-emerald-400 to-teal-500 rounded-full flex items-center justify-center text-white mx-auto text-2xl shadow-md mb-2 animate-bounce">
@@ -485,20 +490,38 @@
                         </div>
                     </div>
 
-                    <!-- Comparison list comparing before vs after portfolio metrics -->
-                    <div class="space-y-2 pt-1 text-xs">
-                        <div class="flex items-center justify-between border-b border-slate-100 pb-1.5">
-                            <span class="text-slate-500 uppercase tracking-wider text-[12px] block">ผลลัพธ์รายผลิตภัณฑ์
-                                (ก่อน vs หลัง)</span>
-                            <span class="text-[12px] text-slate-400">฿ (ก่อน) → ฿ (หลัง)</span>
+                    <!-- Situation Impact (40%) & Per-product Before vs After (60%) -->
+                    <div class="grid grid-cols-1 md:grid-cols-[2fr_3fr] gap-3 items-stretch">
+                        <!-- Box 1: Impact from the situation (40%) -->
+                        <div class="bg-rose-50/60 border border-rose-100/80 rounded-2xl p-3.5 space-y-2">
+                            <span
+                                class="font-extrabold text-slate-500 uppercase tracking-wider text-[12px] block border-b border-rose-100 pb-1.5">
+                                <i class="fa-solid fa-bolt text-rose-500 mr-1"></i>ผลกระทบจากสถานการณ์</span>
+                            <div id="lbSituationTitle" class="font-black text-slate-800 text-xs"></div>
+                            <div id="lbSituationDesc" class="text-[11px] text-slate-500 leading-normal"></div>
+                            <div id="lbSituationImpact"
+                                class="leading-relaxed text-slate-700 space-y-1 max-h-[360px] overflow-y-auto pr-1 text-[11px]">
+                            </div>
                         </div>
-                        <div id="lbAssetsComparisonContainer" class="space-y-2.5 max-h-[400px] overflow-y-auto pr-1">
-                            <!-- Populated dynamically via javascript -->
+                        <!-- Box 2: Per-product results, before vs after (60%) -->
+                        <div class="bg-indigo-50/50 border border-indigo-100/70 rounded-2xl p-3.5 space-y-2">
+                            <div class="flex items-center justify-between border-b border-indigo-100 pb-1.5">
+                                <span class="font-extrabold text-slate-500 uppercase tracking-wider text-[12px] block">
+                                    <i class="fa-solid fa-clipboard-check text-indigo-500 mr-1"></i>ผลลัพธ์รายผลิตภัณฑ์
+                                    (ก่อน vs หลัง)</span>
+                                <span class="text-[12px] text-slate-400">฿ (ก่อน) → ฿ (หลัง)</span>
+                            </div>
+                            <div id="lbAssetsComparisonContainer" class="space-y-2.5 max-h-[400px] overflow-y-auto pr-1">
+                                <!-- Populated dynamically via javascript -->
+                            </div>
                         </div>
                     </div>
 
+                    </div>
+
+                    <!-- Fixed bottom row -->
                     <button onclick="closeLightbox()"
-                        class="w-full py-3 bg-brand-500 hover:bg-brand-600 text-white font-extrabold rounded-2xl text-xs transition shadow-lg shadow-brand-500/25 flex items-center justify-center gap-2">
+                        class="w-full shrink-0 py-3 bg-brand-500 hover:bg-brand-600 text-white font-extrabold rounded-2xl text-xs transition shadow-lg shadow-brand-500/25 flex items-center justify-center gap-2">
                         <i class="fa-solid fa-xmark"></i>
                         <span>ปิดหน้าต่างนี้</span>
                     </button>
