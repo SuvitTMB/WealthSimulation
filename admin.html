@@ -726,6 +726,21 @@
                         -- ยังไม่มีประวัติสถานการณ์ในรอบนี้ --
                     </div>
                 </div>
+
+                <!-- Balance-per-event chart (baht remaining after each situation) -->
+                <div class="mt-6 pt-5 border-t border-slate-100">
+                    <h3 class="font-bold text-slate-800 text-sm mb-3 flex items-center gap-1.5">
+                        <i class="fa-solid fa-sack-dollar text-emerald-500"></i>
+                        ยอดเงินคงเหลือในแต่ละรอบสถานการณ์ (บาท)
+                    </h3>
+                    <div class="w-full h-[440px] bg-slate-50/50 rounded-2xl p-4 border border-slate-100 relative">
+                        <canvas id="situationBalanceChart" class="w-full h-full"></canvas>
+                        <div id="summaryBalanceEmptyState"
+                            class="hidden absolute inset-0 flex items-center justify-center text-slate-400 text-xs font-bold">
+                            -- ยังไม่มีประวัติสถานการณ์ในรอบนี้ --
+                        </div>
+                    </div>
+                </div>
             </div>
         </section>
 
@@ -1394,7 +1409,7 @@
         </div>
 
     </main>
-    <script src="js/admin.js?v=20260704"></script>
+    <script src="js/admin.js?v=20260705"></script>
 </body>
 
 </html>
